@@ -15,6 +15,9 @@ import { useConnectionTimeout } from '@/hooks/useConnectionTimout';
 import { useDebugMode } from '@/hooks/useDebug';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../livekit/scroll-area/scroll-area';
+import { usePromptContext } from '../prompts/prompt-context';
+import { PromptSelector } from '../prompts/prompt-selector';
+import { SelectedPromptDisplay } from '../prompts/selected-prompt-display';
 
 const MotionBottom = motion.create('div');
 
@@ -36,7 +39,7 @@ const BOTTOM_VIEW_MOTION_PROPS = {
   transition: {
     duration: 0.3,
     delay: 0.5,
-    ease: 'easeOut',
+    ease: 'easeOut' as const,
   },
 };
 
@@ -71,6 +74,7 @@ export const SessionView = ({
 
   const messages = useChatMessages();
   const [chatOpen, setChatOpen] = useState(false);
+  const { selectedPrompt, setSelectedPrompt } = usePromptContext();
 
   const controls: ControlBarControls = {
     leave: true,
@@ -82,6 +86,18 @@ export const SessionView = ({
 
   return (
     <section className="bg-background relative z-10 h-full w-full overflow-hidden" {...props}>
+      {/* Prompt Selector */}
+      <div className="fixed top-4 right-4 left-4 z-40 md:right-12 md:left-12">
+        <div className="mx-auto max-w-2xl space-y-3">
+          <PromptSelector
+            onPromptSelect={setSelectedPrompt}
+            selectedPromptId={selectedPrompt?.id}
+            className="relative"
+          />
+          <SelectedPromptDisplay />
+        </div>
+      </div>
+
       {/* Chat Transcript */}
       <div
         className={cn(

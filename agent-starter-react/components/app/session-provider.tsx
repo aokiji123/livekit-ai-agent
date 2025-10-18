@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo } from 'react';
 import { RoomContext } from '@livekit/components-react';
 import { APP_CONFIG_DEFAULTS, type AppConfig } from '@/app-config';
+import { useAgentPrompt } from '@/hooks/useAgentPrompt';
 import { useRoom } from '@/hooks/useRoom';
 
 const SessionContext = createContext<{
@@ -23,7 +24,8 @@ interface SessionProviderProps {
 }
 
 export const SessionProvider = ({ appConfig, children }: SessionProviderProps) => {
-  const { room, isSessionActive, startSession, endSession } = useRoom(appConfig);
+  const { agentInstructions } = useAgentPrompt();
+  const { room, isSessionActive, startSession, endSession } = useRoom(appConfig, agentInstructions);
   const contextValue = useMemo(
     () => ({ appConfig, isSessionActive, startSession, endSession }),
     [appConfig, isSessionActive, startSession, endSession]

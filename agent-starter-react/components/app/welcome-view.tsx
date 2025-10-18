@@ -1,4 +1,7 @@
 import { Button } from '@/components/livekit/button';
+import { usePromptContext } from '@/components/prompts/prompt-context';
+import { PromptSelector } from '@/components/prompts/prompt-selector';
+import { SelectedPromptDisplay } from '@/components/prompts/selected-prompt-display';
 
 function WelcomeImage() {
   return (
@@ -30,6 +33,8 @@ export const WelcomeView = ({
   isAuthenticated,
   ref,
 }: React.ComponentProps<'div'> & WelcomeViewProps) => {
+  const { selectedPrompt, setSelectedPrompt } = usePromptContext();
+
   return (
     <div ref={ref}>
       <section className="bg-background flex flex-col items-center justify-center text-center">
@@ -45,15 +50,53 @@ export const WelcomeView = ({
           </p>
         )}
 
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={onStartCall}
-          disabled={!isAuthenticated}
-          className="mt-6 w-64 font-mono disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {startButtonText}
-        </Button>
+        {/* Prompt Selection */}
+        {isAuthenticated && (
+          <div className="mt-6 w-full max-w-md space-y-3">
+            <div className="text-left">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Choose Agent Prompt (Optional)
+              </label>
+              <PromptSelector
+                onPromptSelect={setSelectedPrompt}
+                selectedPromptId={selectedPrompt?.id}
+                className="w-full"
+              />
+            </div>
+            {selectedPrompt && (
+              <div className="text-left">
+                <SelectedPromptDisplay />
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3">
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={onStartCall}
+            disabled={!isAuthenticated}
+            className="w-64 font-mono disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {startButtonText}
+          </Button>
+
+          <div className="w-full gap-2">
+            <Button
+              disabled={!isAuthenticated}
+              variant="outline"
+              size="sm"
+              className="w-full disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => {
+                if (!isAuthenticated) return;
+                window.location.href = '/prompts';
+              }}
+            >
+              Manage Prompts
+            </Button>
+          </div>
+        </div>
       </section>
     </div>
   );

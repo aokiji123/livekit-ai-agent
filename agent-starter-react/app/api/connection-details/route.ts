@@ -29,6 +29,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
+    const promptInstructions: string | undefined = body?.prompt_instructions;
 
     const participantName = 'user';
     const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
@@ -37,7 +38,8 @@ export async function POST(req: Request) {
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
       roomName,
-      agentName
+      agentName,
+      promptInstructions
     );
 
     const data: ConnectionDetails = {
@@ -61,7 +63,8 @@ export async function POST(req: Request) {
 function createParticipantToken(
   userInfo: AccessTokenOptions,
   roomName: string,
-  agentName?: string
+  agentName?: string,
+  promptInstructions?: string
 ): Promise<string> {
   const at = new AccessToken(API_KEY, API_SECRET, {
     ...userInfo,
@@ -76,9 +79,22 @@ function createParticipantToken(
   };
   at.addGrant(grant);
 
+  // Always configure agents with metadata, even without explicit agent name
+  const agentConfig: { agentName?: string; metadata?: string } = {};
+
   if (agentName) {
+    agentConfig.agentName = agentName;
+  }
+
+  if (promptInstructions) {
+    // Pass instructions as metadata JSON string
+    agentConfig.metadata = JSON.stringify({ prompt_instructions: promptInstructions });
+  }
+
+  // Only set room config if we have agent config
+  if (agentConfig.agentName || agentConfig.metadata) {
     at.roomConfig = new RoomConfiguration({
-      agents: [{ agentName }],
+      agents: [agentConfig],
     });
   }
 

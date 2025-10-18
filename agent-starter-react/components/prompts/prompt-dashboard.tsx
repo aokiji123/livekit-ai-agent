@@ -1,0 +1,257 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import {
+  useCreatePrompt,
+  useDeletePrompt,
+  usePrompts,
+  useUpdatePrompt,
+} from '../../hooks/usePrompts';
+import { Prompt } from '../../lib/types/prompt';
+import { Button } from '../livekit/button';
+
+interface PromptDashboardProps {
+  className?: string;
+}
+
+export function PromptDashboard({ className }: PromptDashboardProps) {
+  const [search, setSearch] = useState('');
+  const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    body: '',
+    tags: [] as string[],
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  const { data: prompts, isLoading } = usePrompts(search);
+  const createPrompt = useCreatePrompt();
+  const updatePrompt = useUpdatePrompt();
+  const deletePrompt = useDeletePrompt();
+
+  const handleCreate = async () => {
+    if (!formData.title || !formData.body) return;
+
+    try {
+      await createPrompt.mutateAsync(formData);
+      setIsCreating(false);
+      setFormData({ title: '', body: '', tags: [] });
+    } catch (error) {
+      console.error('Failed to create prompt:', error);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingPrompt || !formData.title || !formData.body) return;
+
+    try {
+      await updatePrompt.mutateAsync({
+        id: editingPrompt.id,
+        data: formData,
+      });
+      setEditingPrompt(null);
+      setFormData({ title: '', body: '', tags: [] });
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this prompt?')) return;
+
+    try {
+      await deletePrompt.mutateAsync(id);
+    } catch (error) {
+      console.error('Failed to delete prompt:', error);
+    }
+  };
+
+  const startEdit = (prompt: Prompt) => {
+    setEditingPrompt(prompt);
+    setFormData({
+      title: prompt.title,
+      body: prompt.body,
+      tags: prompt.tags,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingPrompt(null);
+    setIsCreating(false);
+    setFormData({ title: '', body: '', tags: [] });
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData((prev) => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()],
+      }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
+  };
+
+  return (
+    <div className={`space-y-6 ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2">
+          <Link href="/">
+            <Button variant="outline" size="sm">
+              Back to Home
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">Prompt Library</h1>
+          <p className="text-muted-foreground">Manage your AI agent prompts</p>
+        </div>
+        <Button onClick={() => setIsCreating(true)}>Create Prompt</Button>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-4">
+        <input
+          type="text"
+          placeholder="Search prompts..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="focus:ring-primary flex-1 rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
+        />
+      </div>
+
+      {/* Create/Edit Form */}
+      {(isCreating || editingPrompt) && (
+        <div className="bg-muted/50 space-y-4 rounded-lg p-6">
+          <h3 className="text-lg font-semibold">
+            {isCreating ? 'Create New Prompt' : 'Edit Prompt'}
+          </h3>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                className="focus:ring-primary w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
+                placeholder="Enter prompt title..."
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Body</label>
+              <textarea
+                value={formData.body}
+                onChange={(e) => setFormData((prev) => ({ ...prev, body: e.target.value }))}
+                className="focus:ring-primary h-32 w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
+                placeholder="Enter prompt content..."
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Tags</label>
+              <div className="mb-2 flex gap-2">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  className="focus:ring-primary flex-1 rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
+                  placeholder="Add a tag..."
+                />
+                <Button type="button" onClick={addTag} variant="outline">
+                  Add
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="bg-primary/10 text-primary flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+                  >
+                    {tag}
+                    <button onClick={() => removeTag(tag)} className="hover:text-primary/70">
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={isCreating ? handleCreate : handleUpdate}
+                disabled={!formData.title || !formData.body}
+              >
+                {isCreating ? 'Create' : 'Update'}
+              </Button>
+              <Button variant="outline" onClick={cancelEdit}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prompts List */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="text-muted-foreground py-8 text-center">Loading prompts...</div>
+        ) : prompts?.length === 0 ? (
+          <div className="text-muted-foreground py-8 text-center">
+            {search ? 'No prompts found' : 'No prompts created yet'}
+          </div>
+        ) : (
+          prompts?.map((prompt) => (
+            <div key={prompt.id} className="bg-card space-y-3 rounded-lg border p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">{prompt.title}</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Version {prompt.version} • Created{' '}
+                    {new Date(prompt.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => startEdit(prompt)}>
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(prompt.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-md p-3">
+                <p className="text-sm whitespace-pre-wrap">{prompt.body}</p>
+              </div>
+
+              {prompt.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {prompt.tags.map((tag: string) => (
+                    <span key={tag} className="bg-muted rounded-md px-2 py-1 text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

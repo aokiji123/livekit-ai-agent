@@ -29,14 +29,6 @@ export function AuthHeader({ onAuthChange }: AuthHeaderProps) {
     logoutMutation.mutate();
   }
 
-  if (isLoading) {
-    return (
-      <div className="fixed top-4 right-4 z-50">
-        <div className="h-9 w-32 animate-pulse rounded-md bg-gray-200 dark:bg-gray-700" />
-      </div>
-    );
-  }
-
   return (
     <div className="fixed top-4 right-4 z-50">
       <div className="flex items-center gap-3">
