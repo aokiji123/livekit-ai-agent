@@ -1,72 +1,49 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-type AuthStatusResponse = {
-  isAuthenticated: boolean;
-};
-
-type AuthResponse = {
-  success: boolean;
-  message: string;
-};
+type AuthStatusResponse = { isAuthenticated: boolean };
+type AuthResponse = { success: boolean; message: string };
 
 const AUTH_QUERY_KEY = ['auth', 'status'] as const;
 
-async function fetchAuthStatus(): Promise<AuthStatusResponse> {
-  const response = await fetch('/api/auth/status');
-  if (!response.ok) {
-    throw new Error('Failed to fetch auth status');
-  }
-  return response.json();
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+  return res.json();
 }
 
-async function devLogin(): Promise<AuthResponse> {
-  const response = await fetch('/api/auth/dev-login', {
-    method: 'POST',
-  });
-  if (!response.ok) {
-    throw new Error('Login failed');
-  }
-  return response.json();
-}
+const fetchAuthStatus = async (): Promise<AuthStatusResponse> => {
+  const res = await fetch('/api/auth/status');
+  if (res.status === 401) return { isAuthenticated: false };
+  if (!res.ok) throw new Error('Failed to fetch auth status');
+  return res.json();
+};
 
-async function logout(): Promise<AuthResponse> {
-  const response = await fetch('/api/auth/logout', {
-    method: 'POST',
-  });
-  if (!response.ok) {
-    throw new Error('Logout failed');
-  }
-  return response.json();
-}
+const devLogin = () => apiFetch<AuthResponse>('/api/auth/dev-login', { method: 'POST' });
+const logout = () => apiFetch<AuthResponse>('/api/auth/logout', { method: 'POST' });
 
 export function useAuthStatus() {
   return useQuery({
     queryKey: AUTH_QUERY_KEY,
     queryFn: fetchAuthStatus,
+    staleTime: 60_000, // cache for 1 minute
   });
 }
 
-export function useDevLogin() {
+function useAuthMutation(mutationFn: () => Promise<AuthResponse>, optimisticValue: boolean) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: devLogin,
+    mutationFn,
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: AUTH_QUERY_KEY });
-
       const previousAuth = queryClient.getQueryData<AuthStatusResponse>(AUTH_QUERY_KEY);
-
       queryClient.setQueryData<AuthStatusResponse>(AUTH_QUERY_KEY, {
-        isAuthenticated: true,
+        isAuthenticated: optimisticValue,
       });
-
       return { previousAuth };
     },
-    onError: (error, _, context) => {
-      if (context?.previousAuth) {
-        queryClient.setQueryData(AUTH_QUERY_KEY, context.previousAuth);
-      }
-      console.error('useDevLogin error', error);
+    onError: (_error, _vars, context) => {
+      if (context?.previousAuth) queryClient.setQueryData(AUTH_QUERY_KEY, context.previousAuth);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
@@ -74,30 +51,5 @@ export function useDevLogin() {
   });
 }
 
-export function useLogout() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: logout,
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: AUTH_QUERY_KEY });
-
-      const previousAuth = queryClient.getQueryData<AuthStatusResponse>(AUTH_QUERY_KEY);
-
-      queryClient.setQueryData<AuthStatusResponse>(AUTH_QUERY_KEY, {
-        isAuthenticated: false,
-      });
-
-      return { previousAuth };
-    },
-    onError: (error, _, context) => {
-      if (context?.previousAuth) {
-        queryClient.setQueryData(AUTH_QUERY_KEY, context.previousAuth);
-      }
-      console.error('useLogout error', error);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
-    },
-  });
-}
+export const useDevLogin = () => useAuthMutation(devLogin, true);
+export const useLogout = () => useAuthMutation(logout, false);

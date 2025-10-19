@@ -1,73 +1,76 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SessionHistory } from '@/lib/types/session-history';
 
-// Query keys
-const sessionHistoryKeys = {
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options);
+
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error ?? 'Unknown API error');
+  }
+
+  return json.data as T;
+}
+
+function parseSessionDates<T extends SessionHistory | SessionHistory[]>(data: T): T {
+  if (Array.isArray(data)) {
+    return data.map((session) => ({
+      ...session,
+      startedAt: new Date(session.startedAt),
+      endedAt: new Date(session.endedAt),
+    })) as T;
+  }
+
+  return {
+    ...data,
+    startedAt: new Date(data.startedAt),
+    endedAt: new Date(data.endedAt),
+  } as T;
+}
+
+export const sessionHistoryKeys = {
   all: ['session-history'] as const,
   lists: () => [...sessionHistoryKeys.all, 'list'] as const,
   details: () => [...sessionHistoryKeys.all, 'detail'] as const,
   detail: (id: string) => [...sessionHistoryKeys.details(), id] as const,
 };
 
-// Fetch all session history
 export function useSessionHistory() {
   return useQuery({
     queryKey: sessionHistoryKeys.lists(),
     queryFn: async (): Promise<SessionHistory[]> => {
-      const response = await fetch('/api/session-history');
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
-
-      // Convert date strings back to Date objects
-      return data.data.map((session: SessionHistory) => ({
-        ...session,
-        startedAt: new Date(session.startedAt),
-        endedAt: new Date(session.endedAt),
-      }));
+      const data = await apiFetch<SessionHistory[]>('/api/session-history');
+      return parseSessionDates(data);
     },
   });
 }
 
-// Fetch single session history by ID
 export function useSessionHistoryById(id: string) {
   return useQuery({
     queryKey: sessionHistoryKeys.detail(id),
     queryFn: async (): Promise<SessionHistory> => {
-      const response = await fetch(`/api/session-history/${id}`);
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
-
-      // Convert date strings back to Date objects
-      return {
-        ...data.data,
-        startedAt: new Date(data.data.startedAt),
-        endedAt: new Date(data.data.endedAt),
-      };
+      const data = await apiFetch<SessionHistory>(`/api/session-history/${id}`);
+      return parseSessionDates(data);
     },
     enabled: !!id,
   });
 }
 
-// Create session history mutation
 export function useCreateSessionHistory() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: Omit<SessionHistory, 'id'>): Promise<SessionHistory> => {
-      const response = await fetch('/api/session-history', {
+      const created = await apiFetch<SessionHistory>('/api/session-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error);
-
-      // Convert date strings back to Date objects
-      return {
-        ...result.data,
-        startedAt: new Date(result.data.startedAt),
-        endedAt: new Date(result.data.endedAt),
-      };
+      return parseSessionDates(created);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sessionHistoryKeys.lists() });
@@ -75,17 +78,12 @@ export function useCreateSessionHistory() {
   });
 }
 
-// Delete session history mutation
 export function useDeleteSessionHistory() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const response = await fetch(`/api/session-history/${id}`, {
-        method: 'DELETE',
-      });
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error);
+      await apiFetch<void>(`/api/session-history/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sessionHistoryKeys.lists() });

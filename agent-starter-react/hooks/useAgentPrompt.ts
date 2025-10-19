@@ -4,7 +4,6 @@ export function useAgentPrompt() {
   const { selectedPrompt } = usePromptContext();
 
   const getAgentInstructions = () => {
-    // Return undefined if no prompt selected - will use agent's default behavior
     if (!selectedPrompt) {
       return undefined;
     }

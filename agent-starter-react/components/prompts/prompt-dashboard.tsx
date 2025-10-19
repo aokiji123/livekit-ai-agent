@@ -19,14 +19,29 @@ interface PromptDashboardProps {
 
 export function PromptDashboard({ className }: PromptDashboardProps) {
   const [search, setSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [tagInput, setTagInput] = useState('');
 
-  const { data: prompts, isLoading } = usePrompts(search);
+  const { data: prompts, isLoading } = usePrompts(
+    search,
+    selectedTags.length > 0 ? selectedTags : undefined
+  );
+
+  const { data: allPrompts } = usePrompts();
+
   const createPrompt = useCreatePrompt();
   const updatePrompt = useUpdatePrompt();
   const deletePrompt = useDeletePrompt();
+
+  const allTags = Array.from(new Set(allPrompts?.flatMap((p) => p.tags) || [])).sort();
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   const form = useForm<PromptFormData>({
     resolver: zodResolver(promptFormSchema),
@@ -106,7 +121,6 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <Link href="/">
@@ -120,15 +134,46 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
         <Button onClick={() => setIsCreating(true)}>Create Prompt</Button>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
+      <div className="space-y-4">
         <input
           type="text"
           placeholder="Search prompts..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="focus:ring-primary flex-1 rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
+          className="focus:ring-primary w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
         />
+
+        {/* Tag Filter */}
+        {allTags.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Filter by tags:</label>
+              {selectedTags.length > 0 && (
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className="text-primary text-xs hover:underline"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                    selectedTags.includes(tag)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create/Edit Form */}
@@ -239,7 +284,7 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
           <div className="text-muted-foreground py-8 text-center">Loading prompts...</div>
         ) : prompts?.length === 0 ? (
           <div className="text-muted-foreground py-8 text-center">
-            {search ? 'No prompts found' : 'No prompts created yet'}
+            {search || selectedTags.length > 0 ? 'No prompts found' : 'No prompts created yet'}
           </div>
         ) : (
           prompts?.map((prompt) => (

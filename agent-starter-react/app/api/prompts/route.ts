@@ -33,15 +33,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<PromptResp
     const tags = searchParams.get('tags');
     const search = searchParams.get('search');
 
-    let prompts;
+    let prompts = usePromptStore.getState().getAll();
 
     if (tags) {
       const tagArray = tags.split(',').map((tag) => tag.trim());
-      prompts = usePromptStore.getState().searchByTags(tagArray);
-    } else if (search) {
-      prompts = usePromptStore.getState().searchByContent(search);
-    } else {
-      prompts = usePromptStore.getState().getAll();
+      prompts = prompts.filter((prompt) => tagArray.some((tag) => prompt.tags.includes(tag)));
+    }
+
+    if (search) {
+      const lowercaseQuery = search.toLowerCase();
+      prompts = prompts.filter(
+        (prompt) =>
+          prompt.title.toLowerCase().includes(lowercaseQuery) ||
+          prompt.body.toLowerCase().includes(lowercaseQuery)
+      );
     }
 
     return NextResponse.json({ success: true, data: prompts }, { status: 200 });

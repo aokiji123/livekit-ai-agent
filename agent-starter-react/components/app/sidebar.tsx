@@ -6,6 +6,7 @@ import { usePromptContext } from '@/components/prompts/prompt-context';
 import { useDeletePrompt, usePrompts } from '@/hooks/usePrompts';
 import { useDeleteSessionHistory, useSessionHistory } from '@/hooks/useSessionHistory';
 import { Prompt } from '@/lib/types/prompt';
+import { DisconnectSimulator } from './disconnect-simulator';
 import { useSession } from './session-provider';
 
 interface SidebarProps {
@@ -28,18 +29,20 @@ export function Sidebar({ className }: SidebarProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
 
-  const { data: prompts, isLoading: promptsLoading } = usePrompts(searchQuery);
+  const { data: prompts, isLoading: promptsLoading } = usePrompts(
+    searchQuery,
+    selectedTags.length > 0 ? selectedTags : undefined
+  );
+
+  const { data: allPrompts } = usePrompts();
+
   const { data: sessions, isLoading: sessionsLoading } = useSessionHistory();
   const deletePrompt = useDeletePrompt();
   const deleteSession = useDeleteSessionHistory();
   const { selectedPrompt, setSelectedPrompt } = usePromptContext();
   const { isSessionActive } = useSession();
 
-  const allTags = Array.from(new Set(prompts?.flatMap((p) => p.tags) || [])).sort();
-
-  const filteredPrompts = prompts?.filter(
-    (prompt) => selectedTags.length === 0 || selectedTags.some((tag) => prompt.tags.includes(tag))
-  );
+  const allTags = Array.from(new Set(allPrompts?.flatMap((p) => p.tags) || [])).sort();
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -80,6 +83,13 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <aside className={`bg-muted/30 flex h-full flex-col overflow-hidden border-r ${className}`}>
+      {/* Connection Testing Section */}
+      {isSessionActive && (
+        <div className="border-b p-4">
+          <DisconnectSimulator />
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto border-b">
         <div className="bg-background sticky top-0 z-10 border-b p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -119,10 +129,10 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="space-y-2 p-4">
           {promptsLoading ? (
             <p className="text-muted-foreground text-center text-sm">Loading...</p>
-          ) : filteredPrompts?.length === 0 ? (
+          ) : prompts?.length === 0 ? (
             <p className="text-muted-foreground text-center text-sm">No prompts found</p>
           ) : (
-            filteredPrompts?.map((prompt) => (
+            prompts?.map((prompt) => (
               <div
                 key={prompt.id}
                 className={`hover:bg-muted/50 cursor-pointer rounded-lg border p-3 transition-colors ${

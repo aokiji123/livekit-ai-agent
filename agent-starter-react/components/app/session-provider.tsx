@@ -10,12 +10,15 @@ export type SessionHistoryData = {
   startTime: Date;
 };
 
+type ResilienceState = ReturnType<typeof useRoom>['resilience'];
+
 const SessionContext = createContext<{
   appConfig: AppConfig;
   isSessionActive: boolean;
   startSession: () => void;
   endSession: () => void;
   sessionHistoryData: React.MutableRefObject<SessionHistoryData | null>;
+  resilience?: ResilienceState;
 }>({
   appConfig: APP_CONFIG_DEFAULTS,
   isSessionActive: false,
@@ -36,6 +39,7 @@ export const SessionProvider = ({ appConfig, children }: SessionProviderProps) =
     isSessionActive,
     startSession: startRoomSession,
     endSession: endRoomSession,
+    resilience,
   } = useRoom(appConfig, agentInstructions);
 
   const sessionHistoryData = useRef<SessionHistoryData | null>(null);
@@ -50,8 +54,15 @@ export const SessionProvider = ({ appConfig, children }: SessionProviderProps) =
   }, [endRoomSession]);
 
   const contextValue = useMemo(
-    () => ({ appConfig, isSessionActive, startSession, endSession, sessionHistoryData }),
-    [appConfig, isSessionActive, startSession, endSession, sessionHistoryData]
+    () => ({
+      appConfig,
+      isSessionActive,
+      startSession,
+      endSession,
+      sessionHistoryData,
+      resilience,
+    }),
+    [appConfig, isSessionActive, startSession, endSession, sessionHistoryData, resilience]
   );
 
   return (
