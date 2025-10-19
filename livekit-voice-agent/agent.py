@@ -5,6 +5,7 @@ from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
 from livekit.plugins import noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from health_server import start_health_server
 
 load_dotenv(".env")
 
@@ -60,4 +61,8 @@ async def entrypoint(ctx: agents.JobContext):
 
 
 if __name__ == "__main__":
+    # Start health check server
+    start_health_server(port=8080)
+    
+    # Run the agent
     agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))

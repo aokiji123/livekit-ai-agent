@@ -42,9 +42,14 @@ export function PromptSelector({
           <span className="truncate">
             {selectedPrompt ? selectedPrompt.title : 'Select a prompt...'}
           </span>
-          <span className="text-muted-foreground text-xs">
-            {selectedPrompt ? `v${selectedPrompt.version}` : ''}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs">
+              {selectedPrompt ? `v${selectedPrompt.version}` : ''}
+            </span>
+            <kbd className="bg-muted pointer-events-none hidden h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </div>
         </Button>
 
         {selectedPrompt && (
