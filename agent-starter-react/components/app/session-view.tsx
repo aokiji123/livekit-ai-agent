@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import type { AppConfig } from '@/app-config';
 import { ChatTranscript } from '@/components/app/chat-transcript';
 import { PreConnectMessage } from '@/components/app/preconnect-message';
+import { SessionHistoryTracker } from '@/components/app/session-history-tracker';
 import { TileLayout } from '@/components/app/tile-layout';
 import {
   AgentControlBar,
@@ -86,7 +87,8 @@ export const SessionView = ({
 
   return (
     <section className="bg-background relative z-10 h-full w-full overflow-hidden" {...props}>
-      {/* Prompt Selector */}
+      <SessionHistoryTracker />
+
       <div className="fixed top-4 right-4 left-4 z-40 md:right-12 md:left-12">
         <div className="mx-auto max-w-2xl space-y-3">
           <PromptSelector
@@ -98,7 +100,6 @@ export const SessionView = ({
         </div>
       </div>
 
-      {/* Chat Transcript */}
       <div
         className={cn(
           'fixed inset-0 grid grid-cols-1 grid-rows-1',
@@ -115,10 +116,8 @@ export const SessionView = ({
         </ScrollArea>
       </div>
 
-      {/* Tile Layout */}
       <TileLayout chatOpen={chatOpen} />
 
-      {/* Bottom */}
       <MotionBottom
         {...BOTTOM_VIEW_MOTION_PROPS}
         className="fixed inset-x-3 bottom-0 z-50 md:inset-x-12"

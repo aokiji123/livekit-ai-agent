@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import Link from 'next/link';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   useCreatePrompt,
   useDeletePrompt,
   usePrompts,
   useUpdatePrompt,
 } from '../../hooks/usePrompts';
-import { Prompt } from '../../lib/types/prompt';
+import { Prompt, PromptFormData, promptFormSchema } from '../../lib/types/prompt';
 import { Button } from '../livekit/button';
 
 interface PromptDashboardProps {
@@ -19,11 +21,6 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
   const [search, setSearch] = useState('');
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    body: '',
-    tags: [] as string[],
-  });
   const [tagInput, setTagInput] = useState('');
 
   const { data: prompts, isLoading } = usePrompts(search);
@@ -31,30 +28,40 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
   const updatePrompt = useUpdatePrompt();
   const deletePrompt = useDeletePrompt();
 
-  const handleCreate = async () => {
-    if (!formData.title || !formData.body) return;
+  const form = useForm<PromptFormData>({
+    resolver: zodResolver(promptFormSchema),
+    defaultValues: {
+      title: '',
+      body: '',
+      tags: [],
+    },
+  });
 
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
+  const watchedTags = watch('tags');
+
+  const onSubmit = async (data: PromptFormData) => {
     try {
-      await createPrompt.mutateAsync(formData);
-      setIsCreating(false);
-      setFormData({ title: '', body: '', tags: [] });
+      if (isCreating) {
+        await createPrompt.mutateAsync(data);
+        setIsCreating(false);
+      } else if (editingPrompt) {
+        await updatePrompt.mutateAsync({
+          id: editingPrompt.id,
+          data,
+        });
+        setEditingPrompt(null);
+      }
+      reset();
     } catch (error) {
-      console.error('Failed to create prompt:', error);
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!editingPrompt || !formData.title || !formData.body) return;
-
-    try {
-      await updatePrompt.mutateAsync({
-        id: editingPrompt.id,
-        data: formData,
-      });
-      setEditingPrompt(null);
-      setFormData({ title: '', body: '', tags: [] });
-    } catch (error) {
-      console.error('Failed to update prompt:', error);
+      console.error('Failed to save prompt:', error);
     }
   };
 
@@ -70,7 +77,7 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
 
   const startEdit = (prompt: Prompt) => {
     setEditingPrompt(prompt);
-    setFormData({
+    reset({
       title: prompt.title,
       body: prompt.body,
       tags: prompt.tags,
@@ -80,24 +87,21 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
   const cancelEdit = () => {
     setEditingPrompt(null);
     setIsCreating(false);
-    setFormData({ title: '', body: '', tags: [] });
+    reset();
   };
 
   const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()],
-      }));
+    if (tagInput.trim() && !watchedTags.includes(tagInput.trim()) && watchedTags.length < 10) {
+      setValue('tags', [...watchedTags, tagInput.trim()]);
       setTagInput('');
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((tag) => tag !== tagToRemove),
-    }));
+    setValue(
+      'tags',
+      watchedTags.filter((tag) => tag !== tagToRemove)
+    );
   };
 
   return (
@@ -134,26 +138,42 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
             {isCreating ? 'Create New Prompt' : 'Edit Prompt'}
           </h3>
 
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium">Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                className="focus:ring-primary w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
-                placeholder="Enter prompt title..."
+              <Controller
+                name="title"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    className={`focus:ring-primary w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                      errors.title ? 'border-red-500' : ''
+                    }`}
+                    placeholder="Enter prompt title..."
+                  />
+                )}
               />
+              {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
             </div>
 
             <div>
               <label className="mb-1 block text-sm font-medium">Body</label>
-              <textarea
-                value={formData.body}
-                onChange={(e) => setFormData((prev) => ({ ...prev, body: e.target.value }))}
-                className="focus:ring-primary h-32 w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
-                placeholder="Enter prompt content..."
+              <Controller
+                name="body"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    className={`focus:ring-primary h-32 w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                      errors.body ? 'border-red-500' : ''
+                    }`}
+                    placeholder="Enter prompt content..."
+                  />
+                )}
               />
+              {errors.body && <p className="mt-1 text-sm text-red-600">{errors.body.message}</p>}
             </div>
 
             <div>
@@ -166,38 +186,50 @@ export function PromptDashboard({ className }: PromptDashboardProps) {
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                   className="focus:ring-primary flex-1 rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
                   placeholder="Add a tag..."
+                  disabled={watchedTags.length >= 10}
                 />
-                <Button type="button" onClick={addTag} variant="outline">
+                <Button
+                  type="button"
+                  onClick={addTag}
+                  variant="outline"
+                  disabled={
+                    !tagInput.trim() ||
+                    watchedTags.includes(tagInput.trim()) ||
+                    watchedTags.length >= 10
+                  }
+                >
                   Add
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.tags.map((tag) => (
+                {watchedTags.map((tag) => (
                   <span
                     key={tag}
                     className="bg-primary/10 text-primary flex items-center gap-1 rounded-md px-2 py-1 text-sm"
                   >
                     {tag}
-                    <button onClick={() => removeTag(tag)} className="hover:text-primary/70">
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="hover:text-primary/70"
+                    >
                       ×
                     </button>
                   </span>
                 ))}
               </div>
+              {errors.tags && <p className="mt-1 text-sm text-red-600">{errors.tags.message}</p>}
             </div>
 
             <div className="flex gap-2">
-              <Button
-                onClick={isCreating ? handleCreate : handleUpdate}
-                disabled={!formData.title || !formData.body}
-              >
-                {isCreating ? 'Create' : 'Update'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : isCreating ? 'Create' : 'Update'}
               </Button>
-              <Button variant="outline" onClick={cancelEdit}>
+              <Button type="button" variant="outline" onClick={cancelEdit}>
                 Cancel
               </Button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

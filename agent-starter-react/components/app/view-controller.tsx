@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useRoomContext } from '@livekit/components-react';
 import { useSession } from '@/components/app/session-provider';
 import { SessionView } from '@/components/app/session-view';
+import { Sidebar } from '@/components/app/sidebar';
 import { WelcomeView } from '@/components/app/welcome-view';
 
 const MotionWelcomeView = motion.create(WelcomeView);
@@ -37,10 +38,8 @@ export function ViewController({ isAuthenticated }: ViewControllerProps) {
   const isSessionActiveRef = useRef(false);
   const { appConfig, isSessionActive, startSession } = useSession();
 
-  // animation handler holds a reference to stale isSessionActive value
   isSessionActiveRef.current = isSessionActive;
 
-  // disconnect room after animation completes
   const handleAnimationComplete = () => {
     if (!isSessionActiveRef.current && room.state !== 'disconnected') {
       room.disconnect();
@@ -48,26 +47,34 @@ export function ViewController({ isAuthenticated }: ViewControllerProps) {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      {/* Welcome screen */}
-      {!isSessionActive && (
-        <MotionWelcomeView
-          key="welcome"
-          {...VIEW_MOTION_PROPS}
-          startButtonText={appConfig.startButtonText}
-          onStartCall={startSession}
-          isAuthenticated={isAuthenticated}
-        />
-      )}
-      {/* Session view */}
-      {isSessionActive && (
-        <MotionSessionView
-          key="session-view"
-          {...VIEW_MOTION_PROPS}
-          appConfig={appConfig}
-          onAnimationComplete={handleAnimationComplete}
-        />
-      )}
-    </AnimatePresence>
+    <div className="flex h-svh overflow-hidden">
+      {isAuthenticated && <Sidebar className="w-80 flex-shrink-0" />}
+
+      <main className="relative flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {!isSessionActive && (
+            // @ts-expect-error - MotionWelcomeView is a valid component
+            <MotionWelcomeView
+              key="welcome"
+              {...VIEW_MOTION_PROPS}
+              className="h-full"
+              startButtonText={appConfig.startButtonText}
+              onStartCall={startSession}
+              isAuthenticated={isAuthenticated}
+            />
+          )}
+          {/* Session view */}
+          {isSessionActive && (
+            // @ts-expect-error - MotionSessionView is a valid component
+            <MotionSessionView
+              key="session-view"
+              {...VIEW_MOTION_PROPS}
+              appConfig={appConfig}
+              onAnimationComplete={handleAnimationComplete}
+            />
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
   );
 }

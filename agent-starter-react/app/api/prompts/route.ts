@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promptStore } from '@/lib/store/prompt-store';
+import { usePromptStore } from '@/lib/store/prompt-store';
 import { CreatePromptRequest, PromptResponse } from '@/lib/types/prompt';
 
 // POST /api/prompts - Create a new prompt
@@ -7,7 +7,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<PromptRes
   try {
     const body: CreatePromptRequest = await request.json();
 
-    // Validate required fields
     if (!body.title || !body.body) {
       return NextResponse.json(
         { success: false, error: 'Title and body are required' },
@@ -15,12 +14,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<PromptRes
       );
     }
 
-    // Validate tags is an array if provided
     if (body.tags && !Array.isArray(body.tags)) {
       return NextResponse.json({ success: false, error: 'Tags must be an array' }, { status: 400 });
     }
 
-    const prompt = promptStore.create(body);
+    const prompt = usePromptStore.getState().create(body);
 
     return NextResponse.json({ success: true, data: prompt }, { status: 201 });
   } catch (error) {
@@ -29,7 +27,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<PromptRes
   }
 }
 
-// GET /api/prompts - Get all prompts
 export async function GET(request: NextRequest): Promise<NextResponse<PromptResponse>> {
   try {
     const { searchParams } = new URL(request.url);
@@ -39,15 +36,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<PromptResp
     let prompts;
 
     if (tags) {
-      // Search by tags
       const tagArray = tags.split(',').map((tag) => tag.trim());
-      prompts = promptStore.searchByTags(tagArray);
+      prompts = usePromptStore.getState().searchByTags(tagArray);
     } else if (search) {
-      // Search by content
-      prompts = promptStore.searchByContent(search);
+      prompts = usePromptStore.getState().searchByContent(search);
     } else {
-      // Get all prompts
-      prompts = promptStore.getAll();
+      prompts = usePromptStore.getState().getAll();
     }
 
     return NextResponse.json({ success: true, data: prompts }, { status: 200 });

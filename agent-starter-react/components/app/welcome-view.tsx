@@ -1,7 +1,5 @@
 import { Button } from '@/components/livekit/button';
 import { usePromptContext } from '@/components/prompts/prompt-context';
-import { PromptSelector } from '@/components/prompts/prompt-selector';
-import { SelectedPromptDisplay } from '@/components/prompts/selected-prompt-display';
 
 function WelcomeImage() {
   return (
@@ -33,10 +31,10 @@ export const WelcomeView = ({
   isAuthenticated,
   ref,
 }: React.ComponentProps<'div'> & WelcomeViewProps) => {
-  const { selectedPrompt, setSelectedPrompt } = usePromptContext();
+  const { selectedPrompt } = usePromptContext();
 
   return (
-    <div ref={ref}>
+    <div ref={ref} className="flex h-full items-center justify-center">
       <section className="bg-background flex flex-col items-center justify-center text-center">
         <WelcomeImage />
 
@@ -50,24 +48,10 @@ export const WelcomeView = ({
           </p>
         )}
 
-        {/* Prompt Selection */}
-        {isAuthenticated && (
-          <div className="mt-6 w-full max-w-md space-y-3">
-            <div className="text-left">
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Choose Agent Prompt (Optional)
-              </label>
-              <PromptSelector
-                onPromptSelect={setSelectedPrompt}
-                selectedPromptId={selectedPrompt?.id}
-                className="w-full"
-              />
-            </div>
-            {selectedPrompt && (
-              <div className="text-left">
-                <SelectedPromptDisplay />
-              </div>
-            )}
+        {isAuthenticated && selectedPrompt && (
+          <div className="bg-primary/10 border-primary mt-6 w-full rounded-lg border p-4">
+            <p className="mb-1 text-sm font-medium">Selected Prompt:</p>
+            <p className="text-foreground text-sm font-semibold">{selectedPrompt.title}</p>
           </div>
         )}
 
@@ -82,20 +66,13 @@ export const WelcomeView = ({
             {startButtonText}
           </Button>
 
-          <div className="w-full gap-2">
-            <Button
-              disabled={!isAuthenticated}
-              variant="outline"
-              size="sm"
-              className="w-full disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={() => {
-                if (!isAuthenticated) return;
-                window.location.href = '/prompts';
-              }}
-            >
-              Manage Prompts
-            </Button>
-          </div>
+          {isAuthenticated && (
+            <p className="text-muted-foreground text-sm">
+              {selectedPrompt
+                ? 'Using custom prompt from sidebar'
+                : 'Select a prompt from the sidebar (optional)'}
+            </p>
+          )}
         </div>
       </section>
     </div>

@@ -61,6 +61,7 @@ export function ChatInput({
   }, [chatOpen, isAgentAvailable]);
 
   return (
+    // @ts-expect-error - MOTION_PROPS is a valid motion props
     <motion.div
       inert={!chatOpen}
       {...MOTION_PROPS}

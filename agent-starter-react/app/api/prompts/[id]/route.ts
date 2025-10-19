@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promptStore } from '@/lib/store/prompt-store';
+import { usePromptStore } from '@/lib/store/prompt-store';
 import { PromptResponse, UpdatePromptRequest } from '@/lib/types/prompt';
 
 // GET /api/prompts/[id] - Get a specific prompt
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<PromptResponse>> {
   try {
-    const { id } = params;
+    const { id } = await params;
 
-    const prompt = promptStore.getById(id);
+    const prompt = usePromptStore.getState().getById(id);
 
     if (!prompt) {
       return NextResponse.json({ success: false, error: 'Prompt not found' }, { status: 404 });
@@ -26,13 +26,12 @@ export async function GET(
 // PUT /api/prompts/[id] - Update a specific prompt
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<PromptResponse>> {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body: UpdatePromptRequest = await request.json();
 
-    // Validate that at least one field is provided
     if (!body.title && !body.body && !body.tags) {
       return NextResponse.json(
         { success: false, error: 'At least one field (title, body, or tags) must be provided' },
@@ -40,12 +39,11 @@ export async function PUT(
       );
     }
 
-    // Validate tags is an array if provided
     if (body.tags && !Array.isArray(body.tags)) {
       return NextResponse.json({ success: false, error: 'Tags must be an array' }, { status: 400 });
     }
 
-    const updatedPrompt = promptStore.update(id, body);
+    const updatedPrompt = usePromptStore.getState().update(id, body);
 
     if (!updatedPrompt) {
       return NextResponse.json({ success: false, error: 'Prompt not found' }, { status: 404 });
@@ -61,12 +59,12 @@ export async function PUT(
 // DELETE /api/prompts/[id] - Delete a specific prompt
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<PromptResponse>> {
   try {
-    const { id } = params;
+    const { id } = await params;
 
-    const deleted = promptStore.delete(id);
+    const deleted = usePromptStore.getState().delete(id);
 
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Prompt not found' }, { status: 404 });

@@ -1,17 +1,30 @@
+import { create } from 'zustand';
 import { CreatePromptRequest, Prompt, PromptVersion, UpdatePromptRequest } from '../types/prompt';
 
-class PromptStore {
-  private prompts: Map<string, Prompt> = new Map();
-  private versions: Map<string, PromptVersion[]> = new Map();
+function generateId(): string {
+  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+}
 
-  // Generate unique ID
-  private generateId(): string {
-    return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-  }
+type PromptStore = {
+  prompts: Map<string, Prompt>;
+  versions: Map<string, PromptVersion[]>;
 
-  // Create a new prompt
-  create(data: CreatePromptRequest): Prompt {
-    const id = this.generateId();
+  create: (data: CreatePromptRequest) => Prompt;
+  getAll: () => Prompt[];
+  getById: (id: string) => Prompt | undefined;
+  update: (id: string, data: UpdatePromptRequest) => Prompt | undefined;
+  delete: (id: string) => boolean;
+  getVersions: (promptId: string) => PromptVersion[];
+  searchByTags: (tags: string[]) => Prompt[];
+  searchByContent: (query: string) => Prompt[];
+};
+
+export const usePromptStore = create<PromptStore>((set, get) => ({
+  prompts: new Map(),
+  versions: new Map(),
+
+  create: (data: CreatePromptRequest): Prompt => {
+    const id = generateId();
     const now = new Date();
 
     const prompt: Prompt = {
@@ -24,11 +37,8 @@ class PromptStore {
       version: 1,
     };
 
-    this.prompts.set(id, prompt);
-
-    // Create initial version
     const initialVersion: PromptVersion = {
-      id: this.generateId(),
+      id: generateId(),
       promptId: id,
       version: 1,
       title: data.title,
@@ -37,26 +47,35 @@ class PromptStore {
       createdAt: now,
     };
 
-    this.versions.set(id, [initialVersion]);
+    set((state) => {
+      const newPrompts = new Map(state.prompts);
+      const newVersions = new Map(state.versions);
+
+      newPrompts.set(id, prompt);
+      newVersions.set(id, [initialVersion]);
+
+      return { prompts: newPrompts, versions: newVersions };
+    });
 
     return prompt;
-  }
+  },
 
-  // Get all prompts
-  getAll(): Prompt[] {
-    return Array.from(this.prompts.values()).sort(
+  getAll: (): Prompt[] => {
+    const { prompts } = get();
+    return Array.from(prompts.values()).sort(
       (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
     );
-  }
+  },
 
-  // Get prompt by ID
-  getById(id: string): Prompt | undefined {
-    return this.prompts.get(id);
-  }
+  getById: (id: string): Prompt | undefined => {
+    const { prompts } = get();
+    return prompts.get(id);
+  },
 
-  // Update a prompt (creates new version)
-  update(id: string, data: UpdatePromptRequest): Prompt | undefined {
-    const existingPrompt = this.prompts.get(id);
+  update: (id: string, data: UpdatePromptRequest): Prompt | undefined => {
+    const { prompts, versions } = get();
+    const existingPrompt = prompts.get(id);
+
     if (!existingPrompt) {
       return undefined;
     }
@@ -64,7 +83,6 @@ class PromptStore {
     const now = new Date();
     const newVersion = existingPrompt.version + 1;
 
-    // Create updated prompt
     const updatedPrompt: Prompt = {
       ...existingPrompt,
       title: data.title ?? existingPrompt.title,
@@ -74,11 +92,8 @@ class PromptStore {
       version: newVersion,
     };
 
-    this.prompts.set(id, updatedPrompt);
-
-    // Create new version entry
     const newVersionEntry: PromptVersion = {
-      id: this.generateId(),
+      id: generateId(),
       promptId: id,
       version: newVersion,
       title: updatedPrompt.title,
@@ -87,43 +102,57 @@ class PromptStore {
       createdAt: now,
     };
 
-    // Append to versions (append-only)
-    const existingVersions = this.versions.get(id) || [];
-    this.versions.set(id, [...existingVersions, newVersionEntry]);
+    set(() => {
+      const newPrompts = new Map(prompts);
+      const newVersions = new Map(versions);
+
+      newPrompts.set(id, updatedPrompt);
+
+      const existingVersions = versions.get(id) || [];
+      newVersions.set(id, [...existingVersions, newVersionEntry]);
+
+      return { prompts: newPrompts, versions: newVersions };
+    });
 
     return updatedPrompt;
-  }
+  },
 
-  // Delete a prompt
-  delete(id: string): boolean {
-    const exists = this.prompts.has(id);
+  delete: (id: string): boolean => {
+    const { prompts, versions } = get();
+    const exists = prompts.has(id);
+
     if (exists) {
-      this.prompts.delete(id);
-      this.versions.delete(id);
+      set(() => {
+        const newPrompts = new Map(prompts);
+        const newVersions = new Map(versions);
+
+        newPrompts.delete(id);
+        newVersions.delete(id);
+
+        return { prompts: newPrompts, versions: newVersions };
+      });
     }
+
     return exists;
-  }
+  },
 
-  // Get version history for a prompt
-  getVersions(promptId: string): PromptVersion[] {
-    return this.versions.get(promptId) || [];
-  }
+  getVersions: (promptId: string): PromptVersion[] => {
+    const { versions } = get();
+    return versions.get(promptId) || [];
+  },
 
-  // Search prompts by tags
-  searchByTags(tags: string[]): Prompt[] {
-    return this.getAll().filter((prompt) => tags.some((tag) => prompt.tags.includes(tag)));
-  }
+  searchByTags: (tags: string[]): Prompt[] => {
+    const allPrompts = get().getAll();
+    return allPrompts.filter((prompt) => tags.some((tag) => prompt.tags.includes(tag)));
+  },
 
-  // Search prompts by title or body content
-  searchByContent(query: string): Prompt[] {
+  searchByContent: (query: string): Prompt[] => {
     const lowercaseQuery = query.toLowerCase();
-    return this.getAll().filter(
+    const allPrompts = get().getAll();
+    return allPrompts.filter(
       (prompt) =>
         prompt.title.toLowerCase().includes(lowercaseQuery) ||
         prompt.body.toLowerCase().includes(lowercaseQuery)
     );
-  }
-}
-
-// Export singleton instance
-export const promptStore = new PromptStore();
+  },
+}));

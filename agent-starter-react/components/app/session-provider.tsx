@@ -1,21 +1,27 @@
 'use client';
 
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 import { RoomContext } from '@livekit/components-react';
 import { APP_CONFIG_DEFAULTS, type AppConfig } from '@/app-config';
 import { useAgentPrompt } from '@/hooks/useAgentPrompt';
 import { useRoom } from '@/hooks/useRoom';
+
+export type SessionHistoryData = {
+  startTime: Date;
+};
 
 const SessionContext = createContext<{
   appConfig: AppConfig;
   isSessionActive: boolean;
   startSession: () => void;
   endSession: () => void;
+  sessionHistoryData: React.MutableRefObject<SessionHistoryData | null>;
 }>({
   appConfig: APP_CONFIG_DEFAULTS,
   isSessionActive: false,
   startSession: () => {},
   endSession: () => {},
+  sessionHistoryData: { current: null },
 });
 
 interface SessionProviderProps {
@@ -25,10 +31,27 @@ interface SessionProviderProps {
 
 export const SessionProvider = ({ appConfig, children }: SessionProviderProps) => {
   const { agentInstructions } = useAgentPrompt();
-  const { room, isSessionActive, startSession, endSession } = useRoom(appConfig, agentInstructions);
+  const {
+    room,
+    isSessionActive,
+    startSession: startRoomSession,
+    endSession: endRoomSession,
+  } = useRoom(appConfig, agentInstructions);
+
+  const sessionHistoryData = useRef<SessionHistoryData | null>(null);
+
+  const startSession = useCallback(() => {
+    sessionHistoryData.current = { startTime: new Date() };
+    startRoomSession();
+  }, [startRoomSession]);
+
+  const endSession = useCallback(() => {
+    endRoomSession();
+  }, [endRoomSession]);
+
   const contextValue = useMemo(
-    () => ({ appConfig, isSessionActive, startSession, endSession }),
-    [appConfig, isSessionActive, startSession, endSession]
+    () => ({ appConfig, isSessionActive, startSession, endSession, sessionHistoryData }),
+    [appConfig, isSessionActive, startSession, endSession, sessionHistoryData]
   );
 
   return (

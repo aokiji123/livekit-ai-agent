@@ -4,7 +4,7 @@ import {
   Prompt,
   PromptVersion,
   UpdatePromptRequest,
-} from '@/lib/types/prompt';
+} from '../lib/types/prompt';
 
 // Query keys
 const promptKeys = {
