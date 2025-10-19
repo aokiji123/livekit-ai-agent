@@ -1,26 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-client';
 import {
   CreatePromptRequest,
   Prompt,
   PromptVersion,
   UpdatePromptRequest,
 } from '../lib/types/prompt';
-
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
-
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const json = await response.json();
-
-  if (json.success === false) {
-    throw new Error(json.error || 'Request failed');
-  }
-
-  return json.data as T;
-}
 
 export const promptKeys = {
   all: ['prompts'] as const,

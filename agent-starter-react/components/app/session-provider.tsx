@@ -17,7 +17,7 @@ const SessionContext = createContext<{
   isSessionActive: boolean;
   startSession: () => void;
   endSession: () => void;
-  sessionHistoryData: React.MutableRefObject<SessionHistoryData | null>;
+  sessionHistoryData: React.RefObject<SessionHistoryData | null>;
   resilience?: ResilienceState;
 }>({
   appConfig: APP_CONFIG_DEFAULTS,

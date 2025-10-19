@@ -1,15 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-client';
 
 type AuthStatusResponse = { isAuthenticated: boolean };
 type AuthResponse = { success: boolean; message: string };
 
 const AUTH_QUERY_KEY = ['auth', 'status'] as const;
-
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options);
-  if (!res.ok) throw new Error(`Request failed: ${res.status} ${res.statusText}`);
-  return res.json();
-}
 
 const fetchAuthStatus = async (): Promise<AuthStatusResponse> => {
   const res = await fetch('/api/auth/status');

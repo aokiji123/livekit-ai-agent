@@ -52,7 +52,6 @@ export function SessionHistoryDashboard({ className }: SessionHistoryDashboardPr
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <Link href="/">
@@ -65,7 +64,6 @@ export function SessionHistoryDashboard({ className }: SessionHistoryDashboardPr
         </div>
       </div>
 
-      {/* Sessions List */}
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-muted-foreground py-8 text-center">Loading history...</div>
@@ -102,7 +100,6 @@ export function SessionHistoryDashboard({ className }: SessionHistoryDashboardPr
                 </div>
               </div>
 
-              {/* Expanded Session View */}
               {selectedSession?.id === session.id && (
                 <div className="bg-muted/50 mt-4 rounded-md p-4">
                   <h4 className="mb-3 text-sm font-medium">Conversation</h4>

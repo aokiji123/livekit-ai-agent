@@ -1,20 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-client';
 import { SessionHistory } from '@/lib/types/session-history';
-
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options);
-
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status} ${res.statusText}`);
-  }
-
-  const json = await res.json();
-  if (!json.success) {
-    throw new Error(json.error ?? 'Unknown API error');
-  }
-
-  return json.data as T;
-}
 
 function parseSessionDates<T extends SessionHistory | SessionHistory[]>(data: T): T {
   if (Array.isArray(data)) {

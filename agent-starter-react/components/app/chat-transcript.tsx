@@ -61,6 +61,7 @@ export function ChatTranscript({
   return (
     <AnimatePresence>
       {!hidden && (
+        // @ts-expect-error - MotionContainer is a valid component
         <MotionContainer {...CONTAINER_MOTION_PROPS} {...props}>
           {messages.map(({ id, timestamp, from, message, editTimestamp }: ReceivedChatMessage) => {
             const locale = navigator?.language ?? 'en-US';
