@@ -9,3 +9,8 @@ dependencies = [
     "livekit-plugins-noise-cancellation~=0.2",
     "python-dotenv>=1.1.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]

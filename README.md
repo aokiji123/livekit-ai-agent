@@ -12,8 +12,22 @@ cp .env.example .env
 # 2. Start everything
 docker compose up
 ```
-
 Access at: http://localhost:3000
+
+## Frontend Testing
+
+```bash
+cd agent-starter-react
+npm test
+```
+
+## Backend Testing
+
+Using uv:
+```bash
+cd livekit-voice-agent
+uv run pytest test_agent.py -v
+```
 
 ## Health Checks
 
