@@ -1,5 +1,4 @@
 """Simple HTTP health check server that runs alongside the agent."""
-import asyncio
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
@@ -36,6 +35,6 @@ def start_health_server(port: int = 8080):
     server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f"✅ Health check server started on port {port}")
+    print(f"Health check server started on port {port}")
     return server
 

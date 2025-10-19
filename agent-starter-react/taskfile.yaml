@@ -9,15 +9,15 @@ tasks:
       - echo -e "\nYour Next.js voice assistant is ready to go!\n"
       - echo -e "To give it a try, run the following commands:\r\n"
       - echo -e "\tcd {{.ROOT_DIR}}\r"
-      - echo -e "\tpnpm install\r"
-      - echo -e "\tpnpm dev\r\n"
+      - echo -e "\tnpm install\r"
+      - echo -e "\tnpm dev\r\n"
 
   install:
     interactive: true
     cmds:
-      - 'pnpm install'
+      - 'npm install'
 
   dev:
     interactive: true
     cmds:
-      - 'pnpm dev'
+      - 'npm dev'

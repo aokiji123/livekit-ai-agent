@@ -32,12 +32,12 @@ async def entrypoint(ctx: agents.JobContext):
             custom_prompt = metadata_dict.get("prompt_instructions")
             if custom_prompt:
                 system_instructions = custom_prompt
-                print(f"✅ Using custom prompt instructions: {system_instructions[:100]}...")
+                print(f"Using custom prompt instructions: {system_instructions[:100]}...")
         except (json.JSONDecodeError, AttributeError) as e:
-            print(f"⚠️ Could not parse metadata, using default instructions: {e}")
+            print(f"Could not parse metadata, using default instructions: {e}")
     
     if not system_instructions:
-        print(f"ℹ️ No custom instructions found, using default Assistant behavior")
+        print(f"No custom instructions found, using default Assistant behavior")
     
     session = AgentSession(
         stt="assemblyai/universal-streaming:en",

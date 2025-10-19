@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
-import { Prompt } from '../lib/types/prompt';
+import { Prompt } from '@/lib/types/prompt';
 
 interface PromptContextType {
   selectedPrompt: Prompt | null;

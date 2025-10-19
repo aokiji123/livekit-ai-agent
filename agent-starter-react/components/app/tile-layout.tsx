@@ -121,6 +121,7 @@ export function TileLayout({ chatOpen }: TileLayoutProps) {
                   transition={{
                     ...ANIMATION_TRANSITION,
                     delay: animationDelay,
+                    type: 'spring',
                   }}
                   className={cn(
                     'bg-background aspect-square h-[90px] rounded-md border border-transparent transition-[border,drop-shadow]',
@@ -166,6 +167,7 @@ export function TileLayout({ chatOpen }: TileLayoutProps) {
                   transition={{
                     ...ANIMATION_TRANSITION,
                     delay: animationDelay,
+                    type: 'spring',
                     maskImage: {
                       duration: 1,
                     },
@@ -218,6 +220,7 @@ export function TileLayout({ chatOpen }: TileLayoutProps) {
                   transition={{
                     ...ANIMATION_TRANSITION,
                     delay: animationDelay,
+                    type: 'spring',
                   }}
                   className="drop-shadow-lg/20"
                 >
